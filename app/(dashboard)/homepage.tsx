@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Dropdown } from 'react-native-element-dropdown';
-import Header from "../components/header";
+import Header from "../../components/header";
 
-export default function Index() {
+export default function homepage() {
   const [location, setLocation] = useState(null);
 
   const locations = [
@@ -28,7 +28,7 @@ export default function Index() {
           data={locations}
           labelField="name"
           valueField="key"
-          placeholder="Select Location"
+          placeholder="Select location"
           value={location}
           onChange={item => setLocation(item.key)}
         />
