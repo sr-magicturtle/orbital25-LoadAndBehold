@@ -4,7 +4,7 @@ export default function Header() {
     return (
         <View style={styles.container}>
             <Text style={styles.username}>James Tan Jun Jie</Text>
-            <Text style={styles.studentId}>A09876654W</Text>
+            <Text style={styles.studentId}>A0987654W</Text>
         </View>
     )
 }
@@ -12,9 +12,10 @@ export default function Header() {
 const styles = StyleSheet.create({
     container: {
         backgroundColor: "#E9F5FF",
-        height: 80,
+        height: 135,
         paddingHorizontal: 20,
-        justifyContent: "center",
+        paddingVertical: 20,
+        justifyContent: "flex-end",
         alignItems: "flex-start",
     },
     username: {
