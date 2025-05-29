@@ -1,7 +1,11 @@
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, ScrollView } from "react-native";
 import { Dropdown } from 'react-native-element-dropdown';
 import Header from "../../components/header";
+import Block1Machines from "../../components/Block1Machines";
+import Block2Machines from "../../components/Block2Machines";
+import Block3Machines from "../../components/Block3Machines";
+import Block4Machines from "../../components/Block4Machines";
 
 export default function homepage() {
   const [location, setLocation] = useState(null);
@@ -10,8 +14,7 @@ export default function homepage() {
     { name: "Block 1", key: "1", machines: ["Dryer 1", "Dryer 2"] },
     { name: "Block 2", key: "2", machines: ["Washer 1"] },
     { name: "Block 3", key: "3", machines: ["Washer 1", "Washer 2"] },
-    { name: "Block 4", key: "4", machines: ["Washer 1", "Washer 2", "Washer 3"]},
-    { name: "my shayla", key: "1000", machines: ["sign up for raffles hall rag"]},
+    { name: "Block 4", key: "4", machines: ["Washer 1", "Washer 2", "Washer 3"]}
   ]
 
   const selectedLocation = locations.find(loc => loc.key === location);
@@ -36,9 +39,10 @@ export default function homepage() {
         {selectedLocation && (
           <View>
             <Text style={styles.machineAt}>Machines at {selectedLocation.name}:</Text>
-            {selectedLocation.machines.map( (machine, index) => (
-              <Text key={index}>{machine}</Text>
-            ))}
+            {selectedLocation.key === "1" && <Block1Machines />}
+            {selectedLocation.key === "2" && <Block2Machines />}
+            {selectedLocation.key === "3" && <Block3Machines />}
+            {selectedLocation.key === "4" && <Block4Machines />}
           </View>
         )}
 
