@@ -8,7 +8,6 @@ export default function Index() {
             <Image source={require("../assets/nuslogo.png")} style={styles.image} />
             <Text style={styles.title}>Welcome to WasherWatcher!</Text>
 
-            <Spacer height={150} />
             <Text style={styles.login}>Login as</Text>
             <Spacer height={10} />
 
@@ -25,9 +24,6 @@ export default function Index() {
                     <Text style={styles.buttonWords}>NUS Staff/Visitor</Text>
                 </TouchableOpacity>
             </Link>
-
-            <Spacer height={50} />
-            <Link href="/homepage">shortcut</Link>
         </View>
     )
 }
@@ -38,16 +34,17 @@ const styles = StyleSheet.create({
         backgroundColor: "#EAF6FF",
         alignItems: "center", 
     },
+    image: {
+        marginTop: 100, 
+        width: 300,
+        height: 200,
+    },
     title: {
         color: "black",
         fontSize: 24,
     },
-    image: {
-        marginTop: 50, 
-        width: 300,
-        height: 200,
-    },
     login: {
+        marginTop: 220,
         fontSize: 20,
         color: "black",
     },
