@@ -7,13 +7,13 @@ const Block1Machines = () => {
             image: require("../assets/washingMachine.jpeg"),
             name: "Washer 1",
             model: "FBI208S6W",
-            status: "available",
+            availability: true,
         },
         {
             image: require("../assets/washingMachine.jpeg"),
             name: "Washer 2",
             model: "FBI208S6W",
-            status: "unavailable",
+            availability: false,
         }
     ]
 
@@ -25,7 +25,7 @@ const Block1Machines = () => {
                     image={machine.image}
                     name={machine.name}
                     model={machine.model}
-                    status={machine.status}
+                    availability={machine.availability}
                 />
             ))}
         </ScrollView>
