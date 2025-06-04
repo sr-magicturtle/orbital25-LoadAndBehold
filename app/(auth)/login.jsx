@@ -1,72 +1,97 @@
-import { Link } from "expo-router" 
-import { StyleSheet, Text, TouchableOpacity, View, TextInput } from 'react-native'
-import Spacer from "../../components/Spacer"
+import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import app from '../../firebaseConfig';
 
 const Login = () => {
-    return (
-        <View style={styles.container}> 
-            <Text style={styles.title}>Sign in</Text>
+  const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-            <Spacer height={20} />
+  /*
+  async function registerAndLogin() {
+    setLoading(true);
+    try {
+      const auth = getAuth(app);
+      await createUserWithEmailAndPassword(auth, email, password);
+      const response = await signInWithEmailAndPassword(auth, email, password);
+      setLoading(false);
+      Alert.alert('Success', response.user.uid);
+      return;
+    } catch (error) {
+      setLoading(false);
+      Alert.alert('Ooops', 'something went wrong');
+    }
+  }
+  */
 
-            <TextInput 
-                style={styles.input} 
-                placeholder="Username"
-            />
-            <TextInput 
-                style={styles.input}
-                placeholder="Password" 
-            />
+  async function login() {
+    setLoading(true);
+    try {
+      const auth = getAuth(app);
+      const response = await signInWithEmailAndPassword(auth, email, password);
+      setLoading(false);
+      Alert.alert('Success', `Welcome back, ${response.user.email}`);
+      router.replace('../(dashboard)/homepage');
+    } catch (error) {
+      setLoading(false);
+      Alert.alert('Error', error.message);
+    }
+  }
 
-            <Spacer height={20} />
+  return (
+    <View style={styles.container}>
+      <StatusBar style="auto" />
+      
+      <TextInput 
+        style={styles.input} 
+        placeholder="Email" 
+        onChangeText={setEmail}
+      />
+      
+      <TextInput 
+        style={[styles.input, { marginTop: 15 }]} 
+        placeholder="Password" 
+        onChangeText={setPassword}
+      />
 
-            <Link href="/homepage" asChild>
-                <TouchableOpacity style={styles.button}>
-                    <Text style={styles.buttonWords}>Login</Text>
-                </TouchableOpacity>
-            </Link>
-
-             <Spacer height={50} />
-             <Link href="/register"> 
-                <Text style={{ textAlign: "center" }}>
-                    {"Dont have an account?\nRegister here"}
-                </Text>
-          
-             </Link>
-        
-        </View>
-    )
-}
-
-export default Login;
+      <TouchableOpacity style={styles.button} onPress={login}>
+        {loading ? (
+          <ActivityIndicator 
+            size="small" 
+            color="white" 
+            animating={loading} 
+          />
+        ) : (
+          <Text style={{ color: 'white' }}>Login</Text>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
-    container: {
-        justifyContent: "center",
-        alignItems: "center",
-        flex: 1,
-    },
-    title: {
-        fontSize: 20,
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: "black",
-        padding: 8,
-        margin: 5,
-        width: 300, 
-        borderRadius: 10,
-    },
-    button: {
-        height: 40,
-        width: 100,
-        backgroundColor: "#1C3A7C",
-        borderRadius: 14,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    buttonWords: {
-        fontSize: 16,
-        color: "#FFFFFF",
-    },
-})
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    backgroundColor: '#fff',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 12,
+    borderRadius: 5,
+  },
+  button: {
+    marginTop: 20,
+    backgroundColor: '#007AFF',
+    padding: 15,
+    alignItems: 'center',
+    borderRadius: 5,
+  },
+});
+
+export default Login;
