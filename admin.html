@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Machine Simulator</title>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getFirestore, collection, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBXEra3oQVlDTfxpF541hyBlyPvCivymac",
+      authDomain: "washerwatcher-11e05.firebaseapp.com",
+      projectId: "washerwatcher-11e05",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const machineList = document.createElement('div');
+    document.body.appendChild(machineList);
+
+    function updateAvailability(id, isAvailable) {
+      const ref = doc(db, "machines", id);
+      updateDoc(ref, {
+        available: isAvailable,
+        lastUpdated: new Date()
+      });
+    }
+
+    const machineRef = collection(db, "machines");
+    onSnapshot(machineRef, (snapshot) => {
+      machineList.innerHTML = '';
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const container = document.createElement('div');
+        container.innerHTML = `
+          <h3>${data.id}: <strong>${data.available ? "Available" : "Occupied"}</strong></h3>
+          <button onclick="updateAvailability('${docSnap.id}', true)">Set Available</button>
+          <button onclick="updateAvailability('${docSnap.id}', false)">Set Occupied</button>
+          <hr>
+        `;
+        machineList.appendChild(container);
+      });
+    });
+
+    window.updateAvailability = updateAvailability;
+  </script>
+</head>
+<body>
+  <h1>Simulated Washing Machine Control Panel</h1>
+</body>
+</html>
