@@ -9,7 +9,3 @@ Password: FireStarter
 firebase authentication: stores creds for authorised ppl  
 firestore databse: creation of our machines  
 admin.html: html page to toggle the machines' status  
-
-gfdsfgbdsegrrhfgdsf
-
-
