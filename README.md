@@ -6,6 +6,6 @@ Password: FireStarter
 
 
 ## platforms:
-firebase authentication: stores creds for authorised ppl
-firestore databse: creation of our machines
-admin.html: html page to toggle the machines' status 
+firebase authentication: stores creds for authorised ppl  
+firestore databse: creation of our machines  
+admin.html: html page to toggle the machines' status  
