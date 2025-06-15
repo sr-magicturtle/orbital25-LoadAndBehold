@@ -24,6 +24,15 @@ export default function Index() {
                     <Text style={styles.buttonWords}>NUS Staff/Visitor</Text>
                 </TouchableOpacity>
             </Link>
+
+            <Spacer height={10} />
+
+            <Link href="/(dashboard)/homepage" asChild>
+                <TouchableOpacity style={styles.button}>
+                    <Text style={styles.buttonWords}>Skip Sign In</Text>
+                </TouchableOpacity>
+            </Link>
+
         </View>
     )
 }

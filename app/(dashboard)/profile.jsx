@@ -33,7 +33,7 @@ const Profile = () => {
 
             {/* Leaderboard */}
             <View style={styles.leaderboardContainer}>
-                <Text style={styles.leaderboardTitle}>Leader board</Text>
+                <Text style={styles.leaderboardTitle}>Leaderboard</Text>
                 <Text style={styles.subtitle}>for washing machine hoggers 😡</Text>
 
                 <ScrollView style={styles.scrollArea}>
