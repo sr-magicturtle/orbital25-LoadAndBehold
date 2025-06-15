@@ -11,3 +11,7 @@ Password: 123456
 firebase authentication: stores creds for authorised ppl  
 firestore databse: creation of our machines  
 admin.html: html page to toggle the machines' status  
+qr code generator: https://www.qr-code-generator.com  
+
+## qr code generator  
+{"machineId":"MACHINE_001"}  
