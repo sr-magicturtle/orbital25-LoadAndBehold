@@ -9,15 +9,14 @@ const Block1Machines = () => {
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "machines"), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({
-        ...doc.data(),
-        id: doc.id,
-        image: require("../assets/washingMachine.jpeg") 
-      }));
+      const data = snapshot.docs
+        .map(doc => ({ ...doc.data(), id: doc.id, image: require("../assets/washingMachine.jpeg") }))
+        .filter(machine => machine.location === "Block 1"); 
+
       setMachines(data);
     });
 
-    return () => unsubscribe(); 
+    return () => unsubscribe();
   }, []);
 
   return (
@@ -26,8 +25,8 @@ const Block1Machines = () => {
         <Machine
           key={machine.id || index}
           image={machine.image}
-          name={machine.id} 
-          model={machine.model || "FBI208S6W"} 
+          name={machine.displayName || machine.id}
+          model={machine.model || "FBI208S6W"}
           availability={machine.available}
         />
       ))}

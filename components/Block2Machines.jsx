@@ -1,35 +1,37 @@
-import { View, Text, StyleSheet, ScrollView } from "react-native"
-import Machine from "./Machine";
+import { View, ScrollView } from "react-native";
+import Machine from "../components/Machine";
+import { useEffect, useState } from "react";
+import { collection, onSnapshot } from "firebase/firestore";
+import { db } from "../firebaseConfig";
 
 const Block1Machines = () => {
-    const machines = [
-        {
-            image: require("../assets/washingMachine.jpeg"),
-            name: "Washer 1",
-            model: "FBI208S6W",
-            availability: true,
-        },
-        {
-            image: require("../assets/washingMachine.jpeg"),
-            name: "Washer 2",
-            model: "FBI208S6W",
-            availability: false,
-        }
-    ]
+  const [machines, setMachines] = useState([]);
 
-    return (
-        <ScrollView>
-            {machines.map((machine,index) => (
-                <Machine
-                    key={index}
-                    image={machine.image}
-                    name={machine.name}
-                    model={machine.model}
-                    availability={machine.availability}
-                />
-            ))}
-        </ScrollView>
-    );
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "machines"), (snapshot) => {
+      const data = snapshot.docs
+        .map(doc => ({ ...doc.data(), id: doc.id, image: require("../assets/washingMachine.jpeg") }))
+        .filter(machine => machine.location === "Block 2"); 
+
+      setMachines(data);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  return (
+    <ScrollView>
+      {machines.map((machine, index) => (
+        <Machine
+          key={machine.id || index}
+          image={machine.image}
+          name={machine.displayName || machine.id}
+          model={machine.model || "FBI208S6W"}
+          availability={machine.available}
+        />
+      ))}
+    </ScrollView>
+  );
 };
 
 export default Block1Machines;
