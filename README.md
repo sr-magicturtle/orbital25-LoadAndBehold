@@ -6,7 +6,7 @@ Password: FireStarter
 
 "Skip Sign In" is there for ease of access during testing,  
 but you'll be unable to scan the QR code, as it requires the user's credentials to function  
-features will also not be shwon to their full extent  
+features will also not be shown to their full extent  
 
 ## platforms
 firebase authentication: stores creds for authorised ppl  
