@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, ImageBackground, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { getAuth } from 'firebase/auth';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 
 const leaderboard = Array.from({ length: 50 }, (_, i) => ({
     rank: i + 1,
@@ -13,6 +15,33 @@ const leaderboard = Array.from({ length: 50 }, (_, i) => ({
 }));
 
 const Profile = () => {
+    const [name, setName] = useState('');
+    const [studentId, setStudentId] = useState('');
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            const auth = getAuth();
+            const firestore = getFirestore();
+            const user = auth.currentUser;
+
+            if (user) {
+                const uid = user.uid;
+                const userRef = doc(firestore, 'users', uid);
+                const docSnap = await getDoc(userRef);
+
+                if (docSnap.exists()) {
+                    const userData = docSnap.data();
+                    setName(userData.studentName || 'Unknown');
+                    setStudentId(userData.studentId || '');
+                } else {
+                    console.log('No such document!');
+                }
+            }
+        };
+
+        fetchUserData();
+    }, []);
+
     return (
         <View style={styles.container}>
             {/* Checkered background + profile picture */}
@@ -27,8 +56,8 @@ const Profile = () => {
 
             {/* Name + ID */}
             <View style={styles.infoBox}>
-                <Text style={styles.username}>James Tan Jun Jie</Text>
-                <Text style={styles.studentId}>A0987654W</Text>
+                <Text style={styles.username}>{name}</Text>
+                <Text style={styles.studentId}>{studentId}</Text>
             </View>
 
             {/* Leaderboard */}

@@ -1,43 +1,54 @@
 import { collection, getDocs } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import Header from "../../components/header";
+import Header from '../../components/header';
 import { db } from '../../firebaseConfig';
+import { getAuth } from 'firebase/auth';
 
 const HistoryPage = () => {
   const [historyData, setHistoryData] = useState([]);
+  const auth = getAuth();
 
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, 'history'));
-        const data = querySnapshot.docs.map(doc => {
+        const user = auth.currentUser;
+        if (!user) {
+          console.warn('User not authenticated');
+          return;
+        }
+
+        const querySnapshot = await getDocs(collection(db, 'users', user.uid, 'scans'));
+        const data = querySnapshot.docs.map((doc) => {
           const d = doc.data();
+          const dateObj = new Date(d.scannedAt);
 
-          // Parse the times
-          const end = new Date(`1970-01-01T${d.endTime}`);
-          const cycleEnd = new Date(`1970-01-01T${d.cycleEndTime}`);
+          const date = dateObj.toLocaleDateString();
+          const time = dateObj.toLocaleTimeString();
 
-          // Calculate duration (in minutes)
-          const diffMs = cycleEnd - end;
-          const duration = Math.max(Math.round(diffMs / 60000), 0); // fallback to 0
-
-          // Determine color
-          let color = '#D3D3D3'; // default
+          const duration = 60; 
+          let color = '#D3D3D3';
           if (duration < 15) color = '#C2F2D0';
           else if (duration <= 30) color = '#FFF6A6';
-          else if (duration > 30) color = '#FFBABA';
+          else color = '#FFBABA';
 
           return {
             ...d,
-            duration: isNaN(duration) ? '-' : duration,
+            date,
+            time,
+            duration,
             color,
+            scannedAt: dateObj, 
           };
         });
 
+        // sort by most recent first 
+        data.sort((a, b) => b.scannedAt - a.scannedAt);
+
         setHistoryData(data);
+
       } catch (err) {
-        console.error('Error fetching history:', err);
+        console.error('Error fetching scan history:', err);
       }
     };
 
@@ -48,22 +59,17 @@ const HistoryPage = () => {
     <View style={{ flex: 1 }}>
       <Header />
       <ScrollView style={styles.container}>
-        <Text style={styles.subHeading}>History</Text>
+        <Text style={styles.subHeading}>Machine Scan History</Text>
 
         {historyData.map((entry, index) => (
           <View key={index} style={styles.card}>
             <View style={styles.cardContent}>
               <View>
                 <Text style={styles.date}>
-                  {entry.date}{' '}
-                  {entry.status === 'Ongoing' && (
-                    <Text style={{ color: 'green' }}>(Ongoing)</Text>
-                  )}
+                  {entry.date} <Text style={{ color: 'green' }}>{entry.status === 'Ongoing' ? '(Ongoing)' : ''}</Text>
                 </Text>
-                <Text>{entry.location}</Text>
-                <Text>Start Time: {entry.startTime}</Text>
-                <Text>End Time: {entry.endTime}</Text>
-                <Text>Cycle End Time: {entry.cycleEndTime}</Text>
+                <Text>Machine: {entry.machineId}</Text>
+                <Text>Scanned At: {entry.time}</Text>
               </View>
 
               <View style={[styles.durationCircle, { backgroundColor: entry.color }]}>
@@ -97,8 +103,8 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 12,
     marginBottom: 20,
-    width: '100%', // ✅ full width
-    alignSelf: 'flex-start', // ✅ left aligned
+    width: '100%',
+    alignSelf: 'flex-start',
   },
   userName: {
     fontWeight: 'bold',

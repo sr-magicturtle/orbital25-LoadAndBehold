@@ -25,7 +25,7 @@ const QrScanner = () => {
       if (!machineId) throw new Error("QR code missing 'machineId'");
 
       router.push({
-        pathname: "../QR/Payment",
+        pathname: "../(QR)/Payment",
         params: { machineId },
       });
     } catch (err) {
