@@ -1,22 +1,175 @@
+// import { CameraView, useCameraPermissions } from 'expo-camera';
+// import * as Linking from 'expo-linking';
+// import { router } from 'expo-router';
+// import { getAuth } from 'firebase/auth';
+// import { getFirestore } from 'firebase/firestore';
+// import React, { useRef, useState } from 'react';
+// import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+// import app from '../../firebaseConfig';
+
+// const auth = getAuth(app);
+// const db = getFirestore(app);
+
+// const QrScanner = () => {
+//   const [permission, requestPermission] = useCameraPermissions();
+//   const [scanned, setScanned] = useState(false);
+//   const scannedRef = useRef(false);
+
+//   const handleBarCodeScanned = async ({ data }) => {
+//     if (scannedRef.current) return; 
+//     scannedRef.current = true;
+
+//     try {
+//       const parsed = JSON.parse(data);
+//       const machineId = parsed.machineId;
+//       if (!machineId) throw new Error("QR code missing 'machineId'");
+
+//       router.push({
+//         pathname: "../(QR)/Payment",
+//         params: { machineId },
+//       });
+//     } catch (err) {
+//       console.error(err);
+//       Alert.alert("Scan Error", err.message || "Invalid QR code.");
+//       scannedRef.current = false;
+//     }
+//   };
+
+
+
+//   const handleRequestPermission = async () => {
+//     const result = await requestPermission();
+//     console.log("Permission result:", result);
+//   };
+
+
+//   // Permissions 
+//   // 1. Waiting for initial status
+//   if (!permission || permission.status === 'undetermined') {
+//     return (
+//       <View style={styles.container}>
+//         <Text style={styles.heading}>Requesting Camera Permission...</Text>
+//       </View>
+//     );
+//   }
+
+//   // 2. Permanently denied
+//   if (!permission.granted && !permission.canAskAgain) {
+//     return (
+//       <View style={styles.permissionContainer}>
+//         <Text style={styles.heading}>Camera access is blocked</Text>
+//         <Text style={styles.infoText}>
+//           To scan QR codes, please enable camera access in your device settings.
+//         </Text>
+//         <TouchableOpacity onPress={() => Linking.openSettings()} style={styles.permissionButton}>
+//           <Text style={styles.buttonText}>Open Settings</Text>
+//         </TouchableOpacity>
+//       </View>
+//     );
+//   }
+
+//   // 3. Denied but can still ask
+//   if (!permission.granted) {
+//     return (
+//       <View style={styles.permissionContainer}>
+//         <Text style={styles.heading}>Camera permission is required</Text>
+//         <TouchableOpacity onPress={handleRequestPermission} style={styles.permissionButton}>
+//           <Text style={styles.buttonText}>Grant Permission</Text>
+//         </TouchableOpacity>
+//       </View>
+//     );
+//   }
+
+
+
+//   return (
+//     <View style={styles.container}>
+//       <CameraView
+//         style={StyleSheet.absoluteFillObject}
+//         facing="back"
+//         onBarcodeScanned={handleBarCodeScanned}
+//         barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+//       />
+//     </View>
+//   );
+// };
+
+// export default QrScanner;
+
+// const styles = StyleSheet.create({
+//   container: {
+//     flex: 1,
+//     backgroundColor: '#000',
+//   },
+//   permissionContainer: {
+//     flex: 1,
+//     backgroundColor: '#fff',
+//     justifyContent: 'center',
+//     alignItems: 'center',
+//     padding: 20,
+//   },
+//   heading: {
+//     fontSize: 20,
+//     marginBottom: 16,
+//     textAlign: 'center',
+//   },
+//   infoText: {
+//     fontSize: 16,
+//     textAlign: 'center',
+//     color: '#444',
+//     marginBottom: 24,
+//   },
+//   permissionButton: {
+//     backgroundColor: '#1C3A7C',
+//     paddingVertical: 12,
+//     paddingHorizontal: 24,
+//     borderRadius: 8,
+//   },
+//   buttonText: {
+//     color: 'white',
+//     fontSize: 16,
+//   },
+//   overlay: {
+//     position: 'absolute',
+//     bottom: 40,
+//     alignSelf: 'center',
+//     backgroundColor: 'rgba(0,0,0,0.7)',
+//     padding: 10,
+//     borderRadius: 8,
+//   },
+//   resultText: {
+//     color: 'white',
+//     fontSize: 16,
+//   },
+// });
+
+
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
+import React, { useRef } from 'react';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import React, { useRef, useState } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import app from '../../firebaseConfig';
+
+// Firebase imports for ScannedAt timing 
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+
 
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+
+//   const [scanned, setScanned] = useState(false);
+
 const QrScanner = () => {
   const [permission, requestPermission] = useCameraPermissions();
-  const [scanned, setScanned] = useState(false);
   const scannedRef = useRef(false);
 
   const handleBarCodeScanned = async ({ data }) => {
-    if (scannedRef.current) return; 
+    if (scannedRef.current) return;
     scannedRef.current = true;
 
     try {
@@ -24,36 +177,42 @@ const QrScanner = () => {
       const machineId = parsed.machineId;
       if (!machineId) throw new Error("QR code missing 'machineId'");
 
+      const user = auth.currentUser;
+      if (!user) throw new Error("User not authenticated");
+
+      // Log scan in Firestore
+      const docRef = await addDoc(collection(db, 'users', user.uid, 'scans'), {
+        machineId,
+        scannedAt: serverTimestamp(),
+      });
+
+      // Navigate and pass doc ID to Payment page
       router.push({
         pathname: "../(QR)/Payment",
-        params: { machineId },
+        params: {
+          machineId,
+          scanId: docRef.id, // this is important for updating later
+        },
       });
+
     } catch (err) {
-      console.error(err);
+      console.error("QR Scan Error:", err);
       Alert.alert("Scan Error", err.message || "Invalid QR code.");
       scannedRef.current = false;
     }
   };
 
 
-
-  const handleRequestPermission = async () => {
-    const result = await requestPermission();
-    console.log("Permission result:", result);
-  };
-
-
-  // Permissions 
-  // 1. Waiting for initial status
+  // Permissions: Waiting for initial status
   if (!permission || permission.status === 'undetermined') {
     return (
-      <View style={styles.container}>
-        <Text style={styles.heading}>Requesting Camera Permission...</Text>
+      <View style={styles.permissionContainer}>
+        <Text style={styles.heading}>Requesting camera permission...</Text>
       </View>
     );
   }
 
-  // 2. Permanently denied
+  // Permissions: Permanently denied
   if (!permission.granted && !permission.canAskAgain) {
     return (
       <View style={styles.permissionContainer}>
@@ -68,24 +227,23 @@ const QrScanner = () => {
     );
   }
 
-  // 3. Denied but can still ask
+  // Permissions: Denied but can still ask
   if (!permission.granted) {
     return (
       <View style={styles.permissionContainer}>
         <Text style={styles.heading}>Camera permission is required</Text>
-        <TouchableOpacity onPress={handleRequestPermission} style={styles.permissionButton}>
+        <TouchableOpacity onPress={requestPermission} style={styles.permissionButton}>
           <Text style={styles.buttonText}>Grant Permission</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-
-
+  // Camera view
   return (
     <View style={styles.container}>
       <CameraView
-        style={StyleSheet.absoluteFillObject}
+        style={styles.camera}
         facing="back"
         onBarcodeScanned={handleBarCodeScanned}
         barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
@@ -101,12 +259,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
+  camera: {
+    flex: 1,
+  },
   permissionContainer: {
     flex: 1,
-    backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: '#fff',
   },
   heading: {
     fontSize: 20,
@@ -129,16 +290,5 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
   },
-  overlay: {
-    position: 'absolute',
-    bottom: 40,
-    alignSelf: 'center',
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    padding: 10,
-    borderRadius: 8,
-  },
-  resultText: {
-    color: 'white',
-    fontSize: 16,
-  },
 });
+

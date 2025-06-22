@@ -1,31 +1,59 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, collection, addDoc } from 'firebase/firestore';
+// import { addDoc, collection, getFirestore, serverTimestamp } from 'firebase/firestore';
+import { doc, getFirestore, Timestamp, updateDoc } from 'firebase/firestore';
+import React from 'react';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import app from '../../firebaseConfig';
+
 
 const auth = getAuth(app);
 const db = getFirestore(app);
 
 const Payment = () => {
-  const { machineId } = useLocalSearchParams();
+  const { machineId, scanId } = useLocalSearchParams();
+
+
+  // const handleConfirm = async () => {
+  //   try {
+  //     const user = auth.currentUser;
+  //     if (!user) throw new Error("User not authenticated");
+
+  //     await addDoc(collection(db, "users", user.uid, "scans"), {
+  //       machineId,
+  //       scannedAt: serverTimestamp(),
+  //     });
+
+  //     Alert.alert("Success", `Machine ${machineId} logged, Payment recorded`);
+  //     router.replace("/(dashboard)/homepage");
+  //   } catch (err) {
+  //     console.error(err);
+  //     Alert.alert("Error", err.message || "Could not log scan.");
+  //   }
+  // };
 
   const handleConfirm = async () => {
     try {
       const user = auth.currentUser;
       if (!user) throw new Error("User not authenticated");
+      if (!scanId) throw new Error("Missing scan ID from QR");
 
-      await addDoc(collection(db, "users", user.uid, "scans"), {
-        machineId,
-        scannedAt: new Date().toISOString(),
+      const now = new Date();
+      const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000); // add 1 hour
+
+      const scanRef = doc(db, 'users', user.uid, 'scans', scanId);
+
+      await updateDoc(scanRef, {
+        cycleStart: Timestamp.fromDate(now),
+        cycleEnd: Timestamp.fromDate(oneHourLater),
       });
 
-      Alert.alert("Success", `Machine ${machineId} logged, Payment recorded`);
+      Alert.alert("Success", `Machine ${machineId} logged. Payment confirmed.`);
       router.replace("/(dashboard)/homepage");
+
     } catch (err) {
-      console.error(err);
-      Alert.alert("Error", err.message || "Could not log scan.");
+      console.error("Payment Error:", err);
+      Alert.alert("Error", err.message || "Something went wrong.");
     }
   };
 
@@ -39,7 +67,7 @@ const Payment = () => {
       </TouchableOpacity>
     </View>
   );
-}
+};
 
 export default Payment;
 
@@ -58,3 +86,4 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
 });
+
