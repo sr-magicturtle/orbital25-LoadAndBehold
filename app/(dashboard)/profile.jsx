@@ -76,7 +76,7 @@ const Profile = () => {
 
     const handleLogout = async () => {
         await signOut(getAuth());
-        router.replace("../../index");
+        router.replace("/");
     };
 
     return (
