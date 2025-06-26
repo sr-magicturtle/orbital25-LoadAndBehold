@@ -1,36 +1,15 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { getAuth } from 'firebase/auth';
-// import { addDoc, collection, getFirestore, serverTimestamp } from 'firebase/firestore';
 import { doc, getFirestore, Timestamp, updateDoc } from 'firebase/firestore';
 import React from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import app from '../../firebaseConfig';
-
 
 const auth = getAuth(app);
 const db = getFirestore(app);
 
 const Payment = () => {
   const { machineId, scanId } = useLocalSearchParams();
-
-
-  // const handleConfirm = async () => {
-  //   try {
-  //     const user = auth.currentUser;
-  //     if (!user) throw new Error("User not authenticated");
-
-  //     await addDoc(collection(db, "users", user.uid, "scans"), {
-  //       machineId,
-  //       scannedAt: serverTimestamp(),
-  //     });
-
-  //     Alert.alert("Success", `Machine ${machineId} logged, Payment recorded`);
-  //     router.replace("/(dashboard)/homepage");
-  //   } catch (err) {
-  //     console.error(err);
-  //     Alert.alert("Error", err.message || "Could not log scan.");
-  //   }
-  // };
 
   const handleConfirm = async () => {
     try {
@@ -59,11 +38,18 @@ const Payment = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>Confirm payment of $1</Text>
-      <Text style={styles.machineText}>Machine: {machineId}</Text>
+      <Image
+        source={require('../../assets/payment-icon.png')} // optional: replace with your asset
+        style={styles.image}
+      />
+      <Text style={styles.heading}>Confirm $1 Payment</Text>
+      <Text style={styles.machineLabel}>For Machine:</Text>
+      <Text style={styles.machineId}>{machineId}</Text>
+
+      <Text style={styles.note}>This payment logs your cycle and starts the 60-minute timer.</Text>
 
       <TouchableOpacity onPress={handleConfirm} style={styles.confirmButton}>
-        <Text style={styles.confirmText}>Confirm</Text>
+        <Text style={styles.confirmText}>💰 Confirm & Start</Text>
       </TouchableOpacity>
     </View>
   );
@@ -72,18 +58,55 @@ const Payment = () => {
 export default Payment;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  heading: { fontSize: 24, marginBottom: 20 },
-  machineText: { fontSize: 18, marginBottom: 40 },
+  container: {
+    flex: 1,
+    backgroundColor: '#F5FAFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 30,
+  },
+  image: {
+    width: 110,
+    height: 110,
+    marginBottom: 25,
+  },
+  heading: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#1C3A7C',
+    marginBottom: 10,
+  },
+  machineLabel: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 10,
+  },
+  machineId: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#007AFF',
+    marginBottom: 25,
+  },
+  note: {
+    fontSize: 16,
+    color: '#444',
+    textAlign: 'center',
+    marginBottom: 30,
+    lineHeight: 22,
+  },
   confirmButton: {
     backgroundColor: '#1C3A7C',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 4,
   },
   confirmText: {
-    color: 'white',
+    color: '#fff',
     fontSize: 18,
+    fontWeight: '600',
   },
 });
-

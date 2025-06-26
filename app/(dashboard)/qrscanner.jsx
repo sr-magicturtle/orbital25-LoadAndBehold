@@ -5,12 +5,19 @@ import React, { useRef } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { getAuth } from 'firebase/auth';
-import { doc, getFirestore, updateDoc } from 'firebase/firestore';
+import { doc, getFirestore, setDoc } from 'firebase/firestore';
 import app from '../../firebaseConfig';
 
-// Firebase imports for ScannedAt timing 
-import { addDoc, collection, getDocs, limit, orderBy, query, serverTimestamp, where } from 'firebase/firestore';
-
+import {
+  addDoc,
+  collection,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  serverTimestamp,
+  where,
+} from 'firebase/firestore';
 
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -31,7 +38,6 @@ const QrScanner = () => {
       const user = auth.currentUser;
       if (!user) throw new Error("User not authenticated");
 
-      // ✅ Get latest scan for this machine
       const scansRef = collection(db, 'users', user.uid, 'scans');
       const q = query(
         scansRef,
@@ -45,7 +51,6 @@ const QrScanner = () => {
         const docSnap = snapshot.docs[0];
         const data = docSnap.data();
 
-        // ❌ Not collected yet → go to Collection page
         if (!data.collectionTime) {
           return router.push({
             pathname: '../(QR)/Collection',
@@ -57,19 +62,20 @@ const QrScanner = () => {
         }
       }
 
-      // ✅ Otherwise: proceed to Payment (new cycle)
-      // ✅ Log new scan for payment
+      // Log new scan and mark machine as unavailable
       const newScanRef = await addDoc(collection(db, 'users', user.uid, 'scans'), {
         machineId,
         scannedAt: serverTimestamp(),
       });
-      await updateDoc(doc(db, "machines", machineId), { //set machine as unavailable
-        available: false,
-      });
 
-      // ✅ Navigate to payment and pass scanId
+      await setDoc(
+        doc(db, 'machines', machineId),
+        { available: false },
+        { merge: true }
+      );
+
       router.push({
-        pathname: "../(QR)/Payment",
+        pathname: '../(QR)/Payment',
         params: {
           machineId,
           scanId: newScanRef.id,
@@ -77,13 +83,12 @@ const QrScanner = () => {
       });
 
     } catch (err) {
-      console.error("QR Scan Error:", err);
-      Alert.alert("Scan Error", err.message || "Invalid QR code.");
+      console.error('QR Scan Error:', err);
+      Alert.alert('Scan Error', err.message || 'Invalid QR code.');
       scannedRef.current = false;
     }
   };
 
-  // Permissions: Waiting for initial status
   if (!permission || permission.status === 'undetermined') {
     return (
       <View style={styles.permissionContainer}>
@@ -92,7 +97,6 @@ const QrScanner = () => {
     );
   }
 
-  // Permissions: Permanently denied
   if (!permission.granted && !permission.canAskAgain) {
     return (
       <View style={styles.permissionContainer}>
@@ -107,7 +111,6 @@ const QrScanner = () => {
     );
   }
 
-  // Permissions: Denied but can still ask
   if (!permission.granted) {
     return (
       <View style={styles.permissionContainer}>
@@ -119,7 +122,6 @@ const QrScanner = () => {
     );
   }
 
-  // Camera view
   return (
     <View style={styles.container}>
       <CameraView
@@ -171,4 +173,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-

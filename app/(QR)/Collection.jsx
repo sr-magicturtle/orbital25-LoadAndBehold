@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { getAuth } from 'firebase/auth';
 import { doc, getFirestore, serverTimestamp, updateDoc } from 'firebase/firestore';
 import React from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import app from '../../firebaseConfig';
 
 const auth = getAuth(app);
@@ -21,26 +21,31 @@ const Collection = () => {
             await updateDoc(scanRef, {
                 collectionTime: serverTimestamp(),
             });
-            await updateDoc(doc(db, "machines", machineId), {
+
+            await updateDoc(doc(db, 'machines', machineId), {
                 available: true,
             });
 
-            Alert.alert("Success", `Laundry collected for ${machineId}`);
-            router.replace("/(dashboard)/homepage");
+            Alert.alert('Success', `Laundry collected for ${machineId}`);
+            router.replace('/(dashboard)/homepage');
         } catch (err) {
             console.error(err);
-            Alert.alert("Error", err.message || "Could not update collection time.");
+            Alert.alert('Error', err.message || 'Could not update collection time.');
         }
     };
 
     return (
         <View style={styles.container}>
+            <Image
+                source={require('../../assets/laundry-icon.png')} // Replace with your own image asset if needed
+                style={styles.image}
+            />
             <Text style={styles.heading}>Collect Laundry</Text>
-            <Text style={styles.machineText}>Machine: {machineId}</Text>
-            <Text style={styles.note}>Please confirm you've collected your laundry.</Text>
+            <Text style={styles.machineId}>Machine: <Text style={styles.machineHighlight}>{machineId}</Text></Text>
+            <Text style={styles.instruction}>Please ensure you've collected all your laundry before confirming.</Text>
 
-            <TouchableOpacity onPress={handleConfirmCollection} style={styles.confirmButton}>
-                <Text style={styles.confirmText}>Confirm Collection</Text>
+            <TouchableOpacity style={styles.confirmButton} onPress={handleConfirmCollection}>
+                <Text style={styles.confirmText}>✅ Confirm Collection</Text>
             </TouchableOpacity>
         </View>
     );
@@ -49,18 +54,52 @@ const Collection = () => {
 export default Collection;
 
 const styles = StyleSheet.create({
-    container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-    heading: { fontSize: 24, marginBottom: 20 },
-    machineText: { fontSize: 18, marginBottom: 10 },
-    note: { fontSize: 16, marginBottom: 40, textAlign: 'center', color: '#555' },
+    container: {
+        flex: 1,
+        backgroundColor: '#F5FAFF',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 30,
+    },
+    image: {
+        width: 120,
+        height: 120,
+        marginBottom: 25,
+    },
+    heading: {
+        fontSize: 26,
+        fontWeight: '700',
+        marginBottom: 10,
+        color: '#1C3A7C',
+    },
+    machineId: {
+        fontSize: 18,
+        fontWeight: '500',
+        marginBottom: 8,
+    },
+    machineHighlight: {
+        color: '#007AFF',
+    },
+    instruction: {
+        fontSize: 16,
+        color: '#555',
+        textAlign: 'center',
+        marginBottom: 40,
+        lineHeight: 22,
+    },
     confirmButton: {
         backgroundColor: '#1C3A7C',
-        paddingVertical: 12,
-        paddingHorizontal: 24,
-        borderRadius: 8,
+        paddingVertical: 14,
+        paddingHorizontal: 30,
+        borderRadius: 10,
+        shadowColor: '#000',
+        shadowOpacity: 0.2,
+        shadowRadius: 5,
+        elevation: 4,
     },
     confirmText: {
-        color: 'white',
+        color: '#fff',
         fontSize: 18,
+        fontWeight: '600',
     },
 });
