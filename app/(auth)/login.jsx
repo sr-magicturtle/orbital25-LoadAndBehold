@@ -14,7 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-
 import app from '../../firebaseConfig';
 
 const db = getFirestore(app);
@@ -56,7 +55,7 @@ const Login = () => {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : null}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.container}
     >
       <StatusBar style="auto" />
@@ -94,6 +93,16 @@ const Login = () => {
             <Text style={styles.buttonText}>Login</Text>
           )}
         </TouchableOpacity>
+
+        <View style={styles.linkRow}>
+          <TouchableOpacity onPress={() => router.replace('/')}>
+            <Text style={styles.linkText}>← Back</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => router.replace('/register')}>
+            <Text style={styles.linkText}>Don't have an account? Register</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -152,5 +161,15 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
+  },
+  linkRow: {
+    marginTop: 20,
+    alignItems: 'center',
+    gap: 10,
+  },
+  linkText: {
+    fontSize: 14,
+    color: '#1C3A7C',
+    textAlign: 'center',
   },
 });
