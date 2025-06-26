@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView } from "react-native"
+import { ScrollView } from "react-native";
 import Machine from "./Machine";
 
 const Block1Machines = () => {
@@ -19,13 +19,14 @@ const Block1Machines = () => {
 
     return (
         <ScrollView>
-            {machines.map((machine,index) => (
+            {machines.map((machine, index) => (
                 <Machine
-                    key={index}
+                    key={machine.id || index}
                     image={machine.image}
-                    name={machine.name}
+                    name={machine.displayName}
+                    machineId={machine.id}
                     model={machine.model}
-                    availability={machine.availability}
+                    availability={machine.available}
                 />
             ))}
         </ScrollView>

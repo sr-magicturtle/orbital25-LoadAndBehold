@@ -5,18 +5,15 @@ import React, { useRef } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { doc, getFirestore, updateDoc } from 'firebase/firestore';
 import app from '../../firebaseConfig';
 
 // Firebase imports for ScannedAt timing 
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, getDocs, limit, orderBy, query, serverTimestamp, where } from 'firebase/firestore';
 
 
 const auth = getAuth(app);
 const db = getFirestore(app);
-
-
-//   const [scanned, setScanned] = useState(false);
 
 const QrScanner = () => {
   const [permission, requestPermission] = useCameraPermissions();
@@ -34,18 +31,48 @@ const QrScanner = () => {
       const user = auth.currentUser;
       if (!user) throw new Error("User not authenticated");
 
-      // Log scan in Firestore
-      const docRef = await addDoc(collection(db, 'users', user.uid, 'scans'), {
+      // ✅ Get latest scan for this machine
+      const scansRef = collection(db, 'users', user.uid, 'scans');
+      const q = query(
+        scansRef,
+        where('machineId', '==', machineId),
+        orderBy('scannedAt', 'desc'),
+        limit(1)
+      );
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        const docSnap = snapshot.docs[0];
+        const data = docSnap.data();
+
+        // ❌ Not collected yet → go to Collection page
+        if (!data.collectionTime) {
+          return router.push({
+            pathname: '../(QR)/Collection',
+            params: {
+              machineId,
+              scanId: docSnap.id,
+            },
+          });
+        }
+      }
+
+      // ✅ Otherwise: proceed to Payment (new cycle)
+      // ✅ Log new scan for payment
+      const newScanRef = await addDoc(collection(db, 'users', user.uid, 'scans'), {
         machineId,
         scannedAt: serverTimestamp(),
       });
+      await updateDoc(doc(db, "machines", machineId), { //set machine as unavailable
+        available: false,
+      });
 
-      // Navigate and pass doc ID to Payment page
+      // ✅ Navigate to payment and pass scanId
       router.push({
         pathname: "../(QR)/Payment",
         params: {
           machineId,
-          scanId: docRef.id, // this is important for updating later
+          scanId: newScanRef.id,
         },
       });
 
@@ -55,7 +82,6 @@ const QrScanner = () => {
       scannedRef.current = false;
     }
   };
-
 
   // Permissions: Waiting for initial status
   if (!permission || permission.status === 'undetermined') {

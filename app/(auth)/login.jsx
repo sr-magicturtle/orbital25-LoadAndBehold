@@ -1,10 +1,21 @@
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { doc, getDoc, getFirestore, setDoc } from 'firebase/firestore';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+
 import app from '../../firebaseConfig';
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 
 const db = getFirestore(app);
 
@@ -26,76 +37,120 @@ const Login = () => {
     }
   };
 
-
-  async function login() {
+  const login = async () => {
     setLoading(true);
     try {
       const auth = getAuth(app);
       const response = await signInWithEmailAndPassword(auth, email, password);
 
-      // create user doc in firestore if it doesnt exist
       await createUserDocIfNeeded(response.user);
 
-      setLoading(false);
       Alert.alert('Success', `Welcome back, ${response.user.email}`);
       router.replace('../(dashboard)/homepage');
     } catch (error) {
+      Alert.alert('Login Failed', error.message);
+    } finally {
       setLoading(false);
-      Alert.alert('Error', error.message);
     }
-  }
+  };
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : null}
+      style={styles.container}
+    >
       <StatusBar style="auto" />
-      
-      <TextInput 
-        style={styles.input} 
-        placeholder="Email" 
-        onChangeText={setEmail}
-      />
-      
-      <TextInput 
-        style={[styles.input, { marginTop: 15 }]} 
-        placeholder="Password" 
-        onChangeText={setPassword}
-      />
+      <View style={styles.card}>
+        <Text style={styles.title}>Welcome Back</Text>
+        <Text style={styles.subtitle}>Login to WasherWatcher</Text>
 
-      <TouchableOpacity style={styles.button} onPress={login}>
-        {loading ? (
-          <ActivityIndicator 
-            size="small" 
-            color="white" 
-            animating={loading} 
-          />
-        ) : (
-          <Text style={{ color: 'white' }}>Login</Text>
-        )}
-      </TouchableOpacity>
-    </View>
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor="#aaa"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          value={email}
+          onChangeText={setEmail}
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          placeholderTextColor="#aaa"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+
+        <TouchableOpacity
+          style={styles.button}
+          onPress={login}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Login</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
   );
 };
+
+export default Login;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#EAF6FF',
     justifyContent: 'center',
-    paddingHorizontal: 20,
+    alignItems: 'center',
+    padding: 24,
+  },
+  card: {
+    width: '100%',
     backgroundColor: '#fff',
+    padding: 24,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1C3A7C',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#555',
+    textAlign: 'center',
+    marginBottom: 24,
   },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
-    padding: 12,
-    borderRadius: 5,
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 16,
+    fontSize: 16,
+    backgroundColor: '#F8F9FB',
   },
   button: {
-    marginTop: 20,
-    backgroundColor: '#007AFF',
-    padding: 15,
+    backgroundColor: '#1C3A7C',
+    paddingVertical: 14,
+    borderRadius: 10,
     alignItems: 'center',
-    borderRadius: 5,
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
   },
 });
-
-export default Login;

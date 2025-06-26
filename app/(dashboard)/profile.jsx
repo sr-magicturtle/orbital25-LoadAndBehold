@@ -1,22 +1,21 @@
+import { router } from 'expo-router';
+import { getAuth, signOut } from 'firebase/auth';
+import { collection, doc, getDoc, getDocs, getFirestore } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
-import { Image, ImageBackground, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
-
-const leaderboard = Array.from({ length: 50 }, (_, i) => ({
-    rank: i + 1,
-    name: 'XXX',
-    color:
-        i === 0 ? '#FF0000'
-            : i === 1 ? '#FF5A5A'
-                : i === 2 ? '#FF8888'
-                    : i === 3 ? '#FFBBBB'
-                        : '#D3D3D3',
-}));
+import {
+    Image,
+    ImageBackground,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 
 const Profile = () => {
     const [name, setName] = useState('');
     const [studentId, setStudentId] = useState('');
+    const [leaderboard, setLeaderboard] = useState([]);
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -33,18 +32,55 @@ const Profile = () => {
                     const userData = docSnap.data();
                     setName(userData.studentName || 'Unknown');
                     setStudentId(userData.studentId || '');
-                } else {
-                    console.log('No such document!');
                 }
             }
         };
 
+        const computeLeaderboard = async () => {
+            const db = getFirestore();
+            const usersSnap = await getDocs(collection(db, 'users'));
+            const results = [];
+
+            for (const userDoc of usersSnap.docs) {
+                const userId = userDoc.id;
+                const scansSnap = await getDocs(collection(db, 'users', userId, 'scans'));
+                let totalDelay = 0;
+                let count = 0;
+
+                scansSnap.forEach((scanDoc) => {
+                    const data = scanDoc.data();
+                    if (data.collectionTime && data.cycleEnd) {
+                        const delay =
+                            new Date(data.collectionTime).getTime() - new Date(data.cycleEnd).getTime();
+                        totalDelay += delay;
+                        count++;
+                    }
+                });
+
+                if (count > 0) {
+                    const avg = totalDelay / count / 1000; // seconds
+                    results.push({
+                        name: userDoc.data().studentName || userDoc.data().email,
+                        avgDelay: avg,
+                    });
+                }
+            }
+
+            results.sort((a, b) => a.avgDelay - b.avgDelay);
+            setLeaderboard(results.slice(0, 50));
+        };
+
         fetchUserData();
+        computeLeaderboard();
     }, []);
+
+    const handleLogout = async () => {
+        await signOut(getAuth());
+        router.replace("../../index");
+    };
 
     return (
         <View style={styles.container}>
-            {/* Checkered background + profile picture */}
             <View style={styles.headerWrapper}>
                 <ImageBackground
                     source={require('../../assets/images/checkers.png')}
@@ -54,13 +90,11 @@ const Profile = () => {
                 <Image source={require('../../assets/portrait.jpg')} style={styles.pfp} />
             </View>
 
-            {/* Name + ID */}
             <View style={styles.infoBox}>
                 <Text style={styles.username}>{name}</Text>
                 <Text style={styles.studentId}>{studentId}</Text>
             </View>
 
-            {/* Leaderboard */}
             <View style={styles.leaderboardContainer}>
                 <Text style={styles.leaderboardTitle}>Leaderboard</Text>
                 <Text style={styles.subtitle}>for washing machine hoggers 😡</Text>
@@ -69,13 +103,19 @@ const Profile = () => {
                     {leaderboard.map((entry, index) => (
                         <View
                             key={index}
-                            style={[styles.rankCard, { backgroundColor: entry.color }]}
+                            style={[styles.rankCard, { backgroundColor: index === 0 ? '#FF0000' : index === 1 ? '#FF5A5A' : index === 2 ? '#FF8888' : '#D3D3D3' }]}
                         >
-                            <Text style={styles.rankText}>#{entry.rank} {entry.name}</Text>
+                            <Text style={styles.rankText}>
+                                #{index + 1} {entry.name} - {entry.avgDelay.toFixed(1)}s
+                            </Text>
                         </View>
                     ))}
                 </ScrollView>
             </View>
+
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                <Text style={styles.logoutText}>Logout</Text>
+            </TouchableOpacity>
         </View>
     );
 };
@@ -109,7 +149,7 @@ const styles = StyleSheet.create({
         zIndex: 1,
     },
     infoBox: {
-        marginTop: 60, // push name + ID below the profile picture
+        marginTop: 60,
         alignItems: 'center',
     },
     username: {
@@ -153,5 +193,20 @@ const styles = StyleSheet.create({
     rankText: {
         color: '#fff',
         fontWeight: 'bold',
+    },
+    logoutButton: {
+        marginTop: 30,
+        padding: 12,
+        backgroundColor: '#1C3A7C',
+        borderRadius: 10,
+        position: 'absolute',
+        bottom: 30,
+        width: '60%',
+        alignItems: 'center',
+    },
+    logoutText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 16,
     },
 });

@@ -1,9 +1,9 @@
+import { getAuth } from 'firebase/auth';
 import { collection, getDocs } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Header from '../../components/header';
 import { db } from '../../firebaseConfig';
-import { getAuth } from 'firebase/auth';
 
 const HistoryPage = () => {
   const [historyData, setHistoryData] = useState([]);
@@ -13,38 +13,44 @@ const HistoryPage = () => {
     const fetchHistory = async () => {
       try {
         const user = auth.currentUser;
-        if (!user) {
-          console.warn('User not authenticated');
-          return;
-        }
+        if (!user) return console.warn('User not authenticated');
 
         const querySnapshot = await getDocs(collection(db, 'users', user.uid, 'scans'));
         const data = querySnapshot.docs.map((doc) => {
           const d = doc.data();
-          const dateObj = new Date(d.scannedAt);
+          const scannedAt = new Date(d.scannedAt);
+          const cycleEnd = d.cycleEnd ? new Date(d.cycleEnd) : null;
+          const collectionTime = d.collectionTime ? new Date(d.collectionTime) : null;
 
-          const date = dateObj.toLocaleDateString();
-          const time = dateObj.toLocaleTimeString();
+          let duration = null;
+          let status = 'Missing Info';
 
-          const duration = 60; 
+          if (cycleEnd && collectionTime) {
+            duration = Math.round((collectionTime - cycleEnd) / 60000);
+            status = 'Completed';
+          } else if (cycleEnd && !collectionTime) {
+            status = 'Ongoing';
+          }
+
           let color = '#D3D3D3';
-          if (duration < 15) color = '#C2F2D0';
-          else if (duration <= 30) color = '#FFF6A6';
-          else color = '#FFBABA';
+          if (duration !== null) {
+            if (duration < 15) color = '#C2F2D0';
+            else if (duration <= 30) color = '#FFF6A6';
+            else color = '#FFBABA';
+          }
 
           return {
             ...d,
-            date,
-            time,
+            scannedAt,
+            date: scannedAt.toLocaleDateString(),
+            time: scannedAt.toLocaleTimeString(),
             duration,
             color,
-            scannedAt: dateObj, 
+            status,
           };
         });
 
-        // sort by most recent first 
         data.sort((a, b) => b.scannedAt - a.scannedAt);
-
         setHistoryData(data);
 
       } catch (err) {
@@ -59,23 +65,26 @@ const HistoryPage = () => {
     <View style={{ flex: 1 }}>
       <Header />
       <ScrollView style={styles.container}>
-        <Text style={styles.subHeading}>Machine Scan History</Text>
+        <Text style={styles.heading}>Machine Scan History</Text>
 
         {historyData.map((entry, index) => (
           <View key={index} style={styles.card}>
             <View style={styles.cardContent}>
               <View>
-                <Text style={styles.date}>
-                  {entry.date} <Text style={{ color: 'green' }}>{entry.status === 'Ongoing' ? '(Ongoing)' : ''}</Text>
+                <Text style={styles.date}>{entry.date}</Text>
+                <Text style={styles.detail}>Machine: {entry.machineId}</Text>
+                <Text style={styles.detail}>Scanned At: {entry.time}</Text>
+                <Text style={[styles.status, getStatusStyle(entry.status)]}>
+                  {entry.status}
                 </Text>
-                <Text>Machine: {entry.machineId}</Text>
-                <Text>Scanned At: {entry.time}</Text>
               </View>
 
-              <View style={[styles.durationCircle, { backgroundColor: entry.color }]}>
-                <Text style={styles.durationText}>{entry.duration}</Text>
-                <Text>mins</Text>
-              </View>
+              {entry.duration !== null && (
+                <View style={[styles.durationCircle, { backgroundColor: entry.color }]}>
+                  <Text style={styles.durationText}>{entry.duration}</Text>
+                  <Text style={styles.durationUnit}>mins</Text>
+                </View>
+              )}
             </View>
           </View>
         ))}
@@ -86,43 +95,37 @@ const HistoryPage = () => {
 
 export default HistoryPage;
 
+const getStatusStyle = (status) => {
+  switch (status) {
+    case 'Completed': return { color: 'green' };
+    case 'Ongoing': return { color: '#FFA500' }; // orange
+    case 'Missing Info': return { color: 'red' };
+    default: return { color: '#555' };
+  }
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F8FBFF',
     padding: 20,
   },
   heading: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#888',
-    marginBottom: 10,
-  },
-  userCard: {
-    backgroundColor: '#E6F2FF',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 20,
-    width: '100%',
-    alignSelf: 'flex-start',
-  },
-  userName: {
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  userId: {
-    fontSize: 14,
-  },
-  subHeading: {
-    fontWeight: 'bold',
-    fontSize: 18,
-    marginBottom: 10,
+    marginBottom: 15,
+    color: '#1C3A7C',
   },
   card: {
-    marginBottom: 20,
-    borderBottomColor: '#ccc',
-    borderBottomWidth: 1,
-    paddingBottom: 10,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
   },
   cardContent: {
     flexDirection: 'row',
@@ -130,8 +133,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   date: {
-    fontWeight: 'bold',
     fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+    color: '#333',
+  },
+  detail: {
+    fontSize: 14,
+    color: '#555',
+  },
+  status: {
+    marginTop: 6,
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   durationCircle: {
     width: 70,
@@ -139,10 +153,15 @@ const styles = StyleSheet.create({
     borderRadius: 35,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
+    alignSelf: 'flex-start',
   },
   durationText: {
     fontSize: 20,
     fontWeight: 'bold',
+    color: '#333',
+  },
+  durationUnit: {
+    fontSize: 12,
+    color: '#333',
   },
 });
