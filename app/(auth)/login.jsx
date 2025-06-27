@@ -59,6 +59,11 @@ const Login = () => {
       style={styles.container}
     >
       <StatusBar style="auto" />
+
+      <TouchableOpacity onPress={() => router.replace('/')} style={styles.backButton}>
+        <Text style={styles.backText}>← Back</Text>
+      </TouchableOpacity>
+
       <View style={styles.card}>
         <Text style={styles.title}>Welcome Back</Text>
         <Text style={styles.subtitle}>Login to WasherWatcher</Text>
@@ -95,10 +100,6 @@ const Login = () => {
         </TouchableOpacity>
 
         <View style={styles.linkRow}>
-          <TouchableOpacity onPress={() => router.replace('/')}>
-            <Text style={styles.linkText}>← Back</Text>
-          </TouchableOpacity>
-
           <TouchableOpacity onPress={() => router.replace('/register')}>
             <Text style={styles.linkText}>Don't have an account? Register</Text>
           </TouchableOpacity>
@@ -117,6 +118,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 60,
+    left: 24,
+  },
+  backText: {
+    fontSize: 16,
+    color: '#1C3A7C',
   },
   card: {
     width: '100%',
@@ -165,7 +175,6 @@ const styles = StyleSheet.create({
   linkRow: {
     marginTop: 20,
     alignItems: 'center',
-    gap: 10,
   },
   linkText: {
     fontSize: 14,
