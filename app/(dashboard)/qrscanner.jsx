@@ -1,13 +1,11 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-
 import { getAuth } from 'firebase/auth';
 import { doc, getFirestore, setDoc } from 'firebase/firestore';
 import app from '../../firebaseConfig';
-
 import {
   addDoc,
   collection,
@@ -25,6 +23,12 @@ const db = getFirestore(app);
 const QrScanner = () => {
   const [permission, requestPermission] = useCameraPermissions();
   const scannedRef = useRef(false);
+
+  useEffect(() => {
+    if (permission?.status === 'undetermined') {
+      requestPermission();
+    }
+  }, [permission]);
 
   const handleBarCodeScanned = async ({ data }) => {
     if (scannedRef.current) return;
@@ -62,7 +66,7 @@ const QrScanner = () => {
         }
       }
 
-      // Log new scan and mark machine as unavailable
+      // log new scan and mark machine as unavailable
       const newScanRef = await addDoc(collection(db, 'users', user.uid, 'scans'), {
         machineId,
         scannedAt: serverTimestamp(),

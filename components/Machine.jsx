@@ -41,7 +41,6 @@ const Machine = ({ image, name, model, availability, machineId }) => {
     }
   };
 
-  // 🔄 Fetch queue count when modal opens
   useEffect(() => {
     const fetchQueueLength = async () => {
       if (modalOpen && machineId) {

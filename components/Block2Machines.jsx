@@ -4,7 +4,7 @@ import { ScrollView } from "react-native";
 import Machine from "../components/Machine";
 import { db } from "../firebaseConfig";
 
-const Block1Machines = () => {
+const Block2Machines = () => {
   const [machines, setMachines] = useState([]);
 
   useEffect(() => {
@@ -35,4 +35,4 @@ const Block1Machines = () => {
   );
 };
 
-export default Block1Machines;
+export default Block2Machines;

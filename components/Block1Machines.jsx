@@ -26,7 +26,7 @@ const Block1Machines = () => {
           key={machine.id || index}
           image={machine.image}
           name={machine.displayName}
-          machineId={machine.id}   // <-- add this
+          machineId={machine.id}   
           model={machine.model || "FBI208S6W"}
           availability={machine.available}
         />
