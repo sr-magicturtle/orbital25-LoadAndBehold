@@ -18,9 +18,10 @@ const HistoryPage = () => {
         const querySnapshot = await getDocs(collection(db, 'users', user.uid, 'scans'));
         const data = querySnapshot.docs.map((doc) => {
           const d = doc.data();
-          const scannedAt = new Date(d.scannedAt);
-          const cycleEnd = d.cycleEnd ? new Date(d.cycleEnd) : null;
-          const collectionTime = d.collectionTime ? new Date(d.collectionTime) : null;
+
+          const scannedAt = d.scannedAt?.toDate?.();
+          const cycleEnd = d.cycleEnd?.toDate?.();
+          const collectionTime = d.collectionTime?.toDate?.();
 
           let duration = null;
           let status = 'Missing Info';
@@ -42,8 +43,8 @@ const HistoryPage = () => {
           return {
             ...d,
             scannedAt,
-            date: scannedAt.toLocaleDateString(),
-            time: scannedAt.toLocaleTimeString(),
+            date: scannedAt ? scannedAt.toLocaleDateString() : 'Invalid Date',
+            time: scannedAt ? scannedAt.toLocaleTimeString() : 'Invalid Time',
             duration,
             color,
             status,

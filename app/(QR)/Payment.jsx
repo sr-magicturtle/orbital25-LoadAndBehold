@@ -36,10 +36,18 @@ const Payment = () => {
     }
   };
 
+  const handleBack = () => {
+    router.back(); // or router.push('/(dashboard)/camera') if it's a named route
+  };
+
   return (
     <View style={styles.container}>
+      <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+        <Text style={styles.backText}>← Back</Text>
+      </TouchableOpacity>
+
       <Image
-        source={require('../../assets/payment-icon.png')} // optional: replace with your asset
+        source={require('../../assets/payment-icon.png')}
         style={styles.image}
       />
       <Text style={styles.heading}>Confirm $1 Payment</Text>
@@ -64,6 +72,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 30,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    padding: 10,
+  },
+  backText: {
+    fontSize: 16,
+    color: '#007AFF',
   },
   image: {
     width: 110,
