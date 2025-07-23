@@ -19,15 +19,20 @@ const Machine = ({ image, name, model, availability, machineId }) => {
       const queueDocRef = doc(db, "machines", machineId, "queue", user.uid);
       const queueSnap = await getDoc(queueDocRef);
 
+      // ✅ Fetch user data to get studentId
       const userRef = doc(db, "users", user.uid);
       const userDocSnap = await getDoc(userRef);
       const userData = userDocSnap.exists() ? userDocSnap.data() : {};
 
+
+
       if (queueSnap.exists()) {
+
         Alert.alert("Already in Queue", "You’ve already joined the queue for this machine.");
       } else {
         await setDoc(queueDocRef, {
-          name: userData.name || user.email,
+          name: user.email,
+          studentId: userData.studentId,
           joinedAt: serverTimestamp(),
         });
         Alert.alert("Success", "You’ve joined the queue!");

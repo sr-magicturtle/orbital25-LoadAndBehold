@@ -1,11 +1,15 @@
 import { getAuth } from "firebase/auth";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { db } from "../../firebaseConfig";
-
 
 export const fetchUserQueues = async () => {
     const user = getAuth().currentUser;
     if (!user) throw new Error("User not logged in");
+
+    // Fetch studentId from user profile
+    const userDocRef = doc(db, "users", user.uid);
+    const userDocSnap = await getDoc(userDocRef);
+    const studentId = userDocSnap.exists() ? userDocSnap.data().studentId : null;
 
     const machineList = [];
     const machinesSnapshot = await getDocs(collection(db, "machines"));
@@ -13,24 +17,29 @@ export const fetchUserQueues = async () => {
     for (const machineDoc of machinesSnapshot.docs) {
         const machineId = machineDoc.id;
 
-        // Get the queue subcollection for this machine
-        const queueSnapshot = await getDocs(collection(db, "machines", machineId, "queue"));
+        const userQueueDocRef = doc(db, "machines", machineId, "queue", user.uid);
+        const userQueueSnap = await getDoc(userQueueDocRef);
 
-        // Sort the queue by joinedAt
-        const sorted = queueSnapshot.docs
-            .filter(doc => doc.data().joinedAt) // filter incomplete data
-            .sort((a, b) => a.data().joinedAt.seconds - b.data().joinedAt.seconds);
+        if (userQueueSnap.exists()) {
+            const queueSnapshot = await getDocs(collection(db, "machines", machineId, "queue"));
 
-        // Find this user's position
-        const userIndex = sorted.findIndex(doc => doc.id === user.uid);
-        if (userIndex !== -1) {
+            // Sort by joinedAt
+            const sorted = queueSnapshot.docs
+                .filter(doc => doc.data().joinedAt)
+                .sort((a, b) => a.data().joinedAt.seconds - b.data().joinedAt.seconds);
+
+            const userIndex = sorted.findIndex(doc => doc.id === user.uid);
+            const position = userIndex + 1;
+
             const machineData = machineDoc.data();
+
             machineList.push({
                 machineId,
                 displayName: machineData.displayName,
                 location: machineData.location,
                 model: machineData.model,
-                position: userIndex + 1,
+                position,
+                studentId, // include it in case UI wants to show
             });
         }
     }

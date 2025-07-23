@@ -33,7 +33,7 @@ const Queue = () => {
             const queueRef = doc(db, 'machines', machineId, 'queue', user.uid);
             await deleteDoc(queueRef);
             Alert.alert('Removed', 'You’ve left the queue.');
-            fetchQueues(); // Refresh
+            fetchQueues();
         } catch (err) {
             console.error('Leave Queue Error:', err);
             Alert.alert('Error', err.message || 'Failed to leave queue.');
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     positionRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 8,
     },
     label: {
         fontSize: 16,
@@ -152,6 +152,11 @@ const styles = StyleSheet.create({
     position: {
         fontSize: 18,
         fontWeight: 'bold',
+    },
+    estimate: {
+        fontSize: 14,
+        color: '#555',
+        marginBottom: 10,
     },
     leaveButton: {
         alignSelf: 'flex-start',

@@ -1,21 +1,24 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { getAuth } from 'firebase/auth';
-import { doc, getFirestore, setDoc } from 'firebase/firestore';
-import app from '../../firebaseConfig';
 import {
   addDoc,
   collection,
+  deleteDoc,
+  doc,
   getDocs,
+  getFirestore,
   limit,
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   where,
 } from 'firebase/firestore';
+import React, { useEffect, useRef } from 'react';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import app from '../../firebaseConfig';
 
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -66,7 +69,7 @@ const QrScanner = () => {
         }
       }
 
-      // log new scan and mark machine as unavailable
+      // ✅ Log new scan and mark machine as unavailable
       const newScanRef = await addDoc(collection(db, 'users', user.uid, 'scans'), {
         machineId,
         scannedAt: serverTimestamp(),
@@ -78,6 +81,10 @@ const QrScanner = () => {
         { merge: true }
       );
 
+      // ✅ Remove user from the queue
+      await deleteDoc(doc(db, "machines", machineId, "queue", user.uid));
+
+      // ✅ Navigate to Payment
       router.push({
         pathname: '../(QR)/Payment',
         params: {
