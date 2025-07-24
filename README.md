@@ -21,4 +21,6 @@ studentName: (string)
 studentId: (string)  
 
 ## qr code generator  
-{"machineId":"Block 1 Machine 1"}  
+used to be {"machineId":"Block 1 Machine 1"}  
+changed to {"machineId":"machine1"}  
+
