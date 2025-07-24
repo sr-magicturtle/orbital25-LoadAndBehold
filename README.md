@@ -23,4 +23,5 @@ studentId: (string)
 ## qr code generator  
 used to be {"machineId":"Block 1 Machine 1"}  
 changed to {"machineId":"machine1"}  
-
+scan the new qr code called "machine1.png"  
+hoping to phase out "Block 1 Machine 1"  
