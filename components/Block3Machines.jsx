@@ -1,7 +1,9 @@
-import { ScrollView } from "react-native";
-import Machine from "./Machine";
+import { ScrollView, Text, View } from "react-native";
+import Machine from "../components/Machine";
 
-const Block1Machines = () => {
+// Accept showAvailableOnly prop (default to false) to avoid red underline and enable filtering
+const Block3Machines = ({ showAvailableOnly = false }) => {
+    // Replace with your real data fetch or static list
     const machines = [
         {
             image: require("../assets/washingMachine.jpeg"),
@@ -14,23 +16,37 @@ const Block1Machines = () => {
             name: "Washer 2",
             model: "FBI208S6W",
             availability: false,
-        }
-    ]
+        },
+    ];
+
+    // Filter if needed
+    const displayed = showAvailableOnly
+        ? machines.filter(m => m.availability)
+        : machines;
+
+    // Show placeholder if no machines available
+    if (displayed.length === 0) {
+        return (
+            <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
+                <Text>No available machines at the moment</Text>
+            </View>
+        );
+    }
 
     return (
         <ScrollView>
-            {machines.map((machine, index) => (
+            {displayed.map((machine, idx) => (
                 <Machine
-                    key={machine.id || index}
+                    key={idx}
                     image={machine.image}
-                    name={machine.displayName}
+                    name={machine.name}
                     machineId={machine.id}
                     model={machine.model}
-                    availability={machine.available}
+                    availability={machine.availability}
                 />
             ))}
         </ScrollView>
     );
 };
 
-export default Block1Machines;
+export default Block3Machines;
