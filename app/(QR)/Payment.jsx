@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { getAuth } from 'firebase/auth';
-import { collection, doc, getDoc, getDocs, query, orderBy, writeBatch, deleteDoc, updateDoc, Timestamp, getFirestore } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, orderBy, writeBatch, deleteDoc, updateDoc, Timestamp, getFirestore, runTransaction } from 'firebase/firestore';
 import React from 'react';
 import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import app from '../../firebaseConfig';
@@ -22,58 +22,58 @@ const Payment = () => {
       const machineRef = doc(db, 'machines', machineId);
       const queueRef = collection(db, 'machines', machineId, 'queue');
       const userDocRef = doc(queueRef, user.uid);
-      const userQueueDoc = await getDoc(userDocRef);
 
-      // Step 1: If there's a queue, enforce it
-      const queueSnapshot = await getDocs(query(queueRef, orderBy('position')));
-      if (!queueSnapshot.empty) {
-        const firstInQueue = queueSnapshot.docs[0];
-        const isFirst = firstInQueue.id === user.uid;
-
-        if (!isFirst) {
-          throw new Error("You’re not next in the queue for this machine.");
-        }
-
-        // Step 2: Remove user from queue
-        await deleteDoc(userDocRef);
-
-        // Step 3: Shift other users up
-        const batch = writeBatch(db);
-        queueSnapshot.docs.slice(1).forEach((docSnap) => {
-          const docRef = doc(queueRef, docSnap.id);
-          batch.update(docRef, {
-            position: docSnap.data().position - 1,
-          });
-        });
-        await batch.commit();
-      }
-
-      // Step 4: Update machine state
       const now = new Date();
       const durationMinutes = 60;
       const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
 
-      // Schedule local notification
+      await runTransaction(db, async (transaction) => {
+        const queueSnapshot = await getDocs(query(queueRef, orderBy('position')));
+
+        if (!queueSnapshot.empty) {
+          const firstInQueue = queueSnapshot.docs[0];
+          if (firstInQueue.id !== user.uid) {
+            throw new Error("You’re not next in the queue for this machine.");
+          }
+
+          // Remove user from queue
+          transaction.delete(userDocRef);
+
+          // Shift others up
+          queueSnapshot.docs.slice(1).forEach((docSnap) => {
+            const docRef = doc(queueRef, docSnap.id);
+            transaction.update(docRef, {
+              position: docSnap.data().position - 1,
+            });
+          });
+        }
+
+        // Update machine state
+        transaction.update(machineRef, {
+          available: false,
+          currentUserId: user.uid,
+          cycleStartTime: Timestamp.fromDate(now),
+          durationMinutes,
+          lastUpdated: Timestamp.now(),
+        });
+
+        // Update user's scan
+        const scanRef = doc(db, 'users', user.uid, 'scans', scanId);
+        transaction.update(scanRef, {
+          cycleStart: Timestamp.fromDate(now),
+          cycleEnd: Timestamp.fromDate(oneHourLater),
+        });
+      });
+
+      // Schedule notification after successful transaction
       const notificationId = await scheduleLaundryReminder(60);
 
-      // Update user's scan
-      await updateDoc(doc(db, 'users', user.uid, 'scans', scanId), {
-        cycleStart: Timestamp.fromDate(now),
-        cycleEnd: Timestamp.fromDate(oneHourLater),
-      });
-
-      // Update machine state
-      await updateDoc(machineRef, {
-        available: false,
-        currentUserId: user.uid,
-        cycleStartTime: Timestamp.fromDate(now),
-        durationMinutes,
-        notificationId,
-        lastUpdated: Timestamp.now(),
-      });
+      // Update notification ID separately (not critical to transaction)
+      await updateDoc(machineRef, { notificationId });
 
       Alert.alert("Success", `Machine ${machineId} started. Payment confirmed.`);
       router.replace("/(dashboard)/homepage");
+
     } catch (err) {
       console.error("Payment Error:", err);
       Alert.alert("Error", err.message || "Something went wrong.");
