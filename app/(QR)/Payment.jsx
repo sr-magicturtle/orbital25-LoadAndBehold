@@ -4,6 +4,8 @@ import { doc, getFirestore, Timestamp, updateDoc } from 'firebase/firestore';
 import React from 'react';
 import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import app from '../../firebaseConfig';
+import { scheduleLaundryReminder } from '../utils/notifications'; 
+// import { sendTestNotification } from '../utils/notifications'; // for testing 
 
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -18,13 +20,28 @@ const Payment = () => {
       if (!scanId) throw new Error("Missing scan ID from QR");
 
       const now = new Date();
+      const durationMinutes = 60; 
       const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000); // add 1 hour
+      
+      // schedule local notification
+      const notificationId = await scheduleLaundryReminder(60);
 
+      // update users' firebase log 
       const scanRef = doc(db, 'users', user.uid, 'scans', scanId);
-
       await updateDoc(scanRef, {
         cycleStart: Timestamp.fromDate(now),
         cycleEnd: Timestamp.fromDate(oneHourLater),
+      });
+
+      // update machine firebase log 
+      const machineRef = doc(db, 'machines', machineId);
+      await updateDoc(machineRef, {
+        available: false,
+        currentUserId: user.uid,
+        cycleStartTime: Timestamp.fromDate(now),
+        durationMinutes,
+        notificationId,
+        lastUpdated: Timestamp.now(),
       });
 
       Alert.alert("Success", `Machine ${machineId} logged. Payment confirmed.`);
@@ -59,6 +76,13 @@ const Payment = () => {
       <TouchableOpacity onPress={handleConfirm} style={styles.confirmButton}>
         <Text style={styles.confirmText}>💰 Confirm & Start</Text>
       </TouchableOpacity>
+      {/* 
+      for testing, linked to notifications.js 
+      <TouchableOpacity onPress={sendTestNotification} style={styles.confirmButton}>
+        <Text style={styles.confirmText}>🧪 Send Test Notification</Text>
+      </TouchableOpacity>
+      */}
+
     </View>
   );
 };

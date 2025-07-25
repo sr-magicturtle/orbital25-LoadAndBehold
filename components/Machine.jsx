@@ -1,8 +1,9 @@
 import { getAuth } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { Alert, Image, Modal, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
 import { db } from "../firebaseConfig";
+import { scheduleLaundryReminder } from "../app/utils/notifications";
 
 const Machine = ({ image, name, model, availability, machineId }) => {
   const statusColor = availability === true ? "green" : "red";
