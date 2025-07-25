@@ -67,7 +67,7 @@ const Profile = () => {
                     });
                 }
             }
-            results.sort((a, b) => a.avgDelay - b.avgDelay);
+            results.sort((a, b) => b.avgDelay - a.avgDelay);
             setLeaderboard(results.slice(0, 50));
         };
 
