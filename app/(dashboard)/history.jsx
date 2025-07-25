@@ -13,12 +13,17 @@ const HistoryPage = () => {
     const fetchHistory = async () => {
       try {
         const user = auth.currentUser;
-        if (!user) return console.warn('User not authenticated');
+        if (!user) {
+          console.warn('User not authenticated');
+          return;
+        }
 
-        const querySnapshot = await getDocs(collection(db, 'users', user.uid, 'scans'));
+        const querySnapshot = await getDocs(
+          collection(db, 'users', user.uid, 'scans')
+        );
+
         const data = querySnapshot.docs.map((doc) => {
           const d = doc.data();
-
           const scannedAt = d.scannedAt?.toDate?.();
           const cycleEnd = d.cycleEnd?.toDate?.();
           const collectionTime = d.collectionTime?.toDate?.();
@@ -43,17 +48,21 @@ const HistoryPage = () => {
           return {
             ...d,
             scannedAt,
-            date: scannedAt ? scannedAt.toLocaleDateString() : 'Invalid Date',
-            time: scannedAt ? scannedAt.toLocaleTimeString() : 'Invalid Time',
+            date: scannedAt
+              ? scannedAt.toLocaleDateString()
+              : 'Invalid Date',
+            time: scannedAt
+              ? scannedAt.toLocaleTimeString()
+              : 'Invalid Time',
             duration,
             color,
             status,
           };
         });
 
+        // sort newest first
         data.sort((a, b) => b.scannedAt - a.scannedAt);
         setHistoryData(data);
-
       } catch (err) {
         console.error('Error fetching scan history:', err);
       }
@@ -66,23 +75,42 @@ const HistoryPage = () => {
     <View style={{ flex: 1 }}>
       <Header />
       <ScrollView style={styles.container}>
-        <Text style={styles.heading}>Machine Scan History</Text>
+        {/* Renamed heading */}
+        <Text style={styles.heading}>Wash History</Text>
+        {/* Total washes count */}
+        <Text style={styles.subheading}>
+          Total Washes: {historyData.length}
+        </Text>
 
         {historyData.map((entry, index) => (
           <View key={index} style={styles.card}>
             <View style={styles.cardContent}>
               <View>
                 <Text style={styles.date}>{entry.date}</Text>
-                <Text style={styles.detail}>Machine: {entry.machineId}</Text>
-                <Text style={styles.detail}>Scanned At: {entry.time}</Text>
-                <Text style={[styles.status, getStatusStyle(entry.status)]}>
+                <Text style={styles.detail}>
+                  Machine: {entry.machineId}
+                </Text>
+                <Text style={styles.detail}>
+                  Scanned At: {entry.time}
+                </Text>
+                <Text
+                  style={[
+                    styles.status,
+                    getStatusStyle(entry.status),
+                  ]}>
                   {entry.status}
                 </Text>
               </View>
 
               {entry.duration !== null && (
-                <View style={[styles.durationCircle, { backgroundColor: entry.color }]}>
-                  <Text style={styles.durationText}>{entry.duration}</Text>
+                <View
+                  style={[
+                    styles.durationCircle,
+                    { backgroundColor: entry.color },
+                  ]}>
+                  <Text style={styles.durationText}>
+                    {entry.duration}
+                  </Text>
                   <Text style={styles.durationUnit}>mins</Text>
                 </View>
               )}
@@ -98,10 +126,14 @@ export default HistoryPage;
 
 const getStatusStyle = (status) => {
   switch (status) {
-    case 'Completed': return { color: 'green' };
-    case 'Ongoing': return { color: '#FFA500' }; // orange
-    case 'Missing Info': return { color: 'red' };
-    default: return { color: '#555' };
+    case 'Completed':
+      return { color: 'green' };
+    case 'Ongoing':
+      return { color: '#FFA500' }; // orange
+    case 'Missing Info':
+      return { color: 'red' };
+    default:
+      return { color: '#555' };
   }
 };
 
@@ -116,6 +148,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 15,
     color: '#1C3A7C',
+  },
+  subheading: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1C3A7C',
+    marginBottom: 10,
   },
   card: {
     backgroundColor: '#fff',

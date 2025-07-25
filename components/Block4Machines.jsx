@@ -5,13 +5,13 @@ const Block1Machines = () => {
     const machines = [
         {
             image: require("../assets/washingMachine.jpeg"),
-            name: "Washer 1",
+            name: "Block 4 Washer 1",
             model: "FBI208S6W",
             availability: true,
         },
         {
             image: require("../assets/washingMachine.jpeg"),
-            name: "Washer 2",
+            name: "Block 4 Washer 2",
             model: "FBI208S6W",
             availability: false,
         }
