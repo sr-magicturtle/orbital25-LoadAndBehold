@@ -17,24 +17,27 @@ const Machine = ({ image, name, model, availability, machineId }) => {
       const user = getAuth().currentUser;
       if (!user) throw new Error("User not logged in");
 
-      const queueDocRef = doc(db, "machines", machineId, "queue", user.uid);
+      const queueCollectionRef = collection(db, "machines", machineId, "queue");
+      const queueDocRef = doc(queueCollectionRef, user.uid);
       const queueSnap = await getDoc(queueDocRef);
 
-      // ✅ Fetch user data to get studentId
+      // Fetch user data to get studentId
       const userRef = doc(db, "users", user.uid);
       const userDocSnap = await getDoc(userRef);
       const userData = userDocSnap.exists() ? userDocSnap.data() : {};
 
-
-
       if (queueSnap.exists()) {
-
         Alert.alert("Already in Queue", "You’ve already joined the queue for this machine.");
       } else {
+        // Get current queue size for position
+        const queueSnapshot = await getDocs(queueCollectionRef);
+        const position = queueSnapshot.size;
+
         await setDoc(queueDocRef, {
           name: user.email,
           studentId: userData.studentId,
           joinedAt: serverTimestamp(),
+          position: position + 1, 
         });
         Alert.alert("Success", "You’ve joined the queue!");
         setModalOpen(false);

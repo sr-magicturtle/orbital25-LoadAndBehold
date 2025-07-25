@@ -45,6 +45,22 @@ const QrScanner = () => {
       const user = auth.currentUser;
       if (!user) throw new Error("User not authenticated");
 
+      // Restriction: Only allow if user is first in queue
+      const queueRef = collection(db, "machines", machineId, "queue");
+      const qQuery = query(queueRef, orderBy('position', 'asc'), limit(1));
+      const queueSnap = await getDocs(qQuery);
+
+      if (queueSnap.empty) {
+        throw new Error("Queue is empty or not found for this machine.");
+      }
+
+      const firstInQueue = queueSnap.docs[0];
+      if (firstInQueue.id !== user.uid) {
+        throw new Error("It's not your turn yet. Please wait for your turn in the queue.");
+      }
+      // Restriction end
+
+      // Check if user has an existing uncollected scan for this machine
       const scansRef = collection(db, 'users', user.uid, 'scans');
       const q = query(
         scansRef,
@@ -52,7 +68,7 @@ const QrScanner = () => {
         orderBy('scannedAt', 'desc'),
         limit(1)
       );
-      const snapshot = await getDocs(q);
+      const snapshot = await getDocs(q); 
 
       if (!snapshot.empty) {
         const docSnap = snapshot.docs[0];
@@ -95,8 +111,29 @@ const QrScanner = () => {
 
     } catch (err) {
       console.error('QR Scan Error:', err);
-      Alert.alert('Scan Error', err.message || 'Invalid QR code.');
-      scannedRef.current = false;
+
+      Alert.alert(
+        'Scan Error',
+        err.message || 'Invalid QR code.',
+        [
+          {
+            text: 'Retry',
+            onPress: () => {
+              // Enable scanning again when user taps Retry
+              scannedRef.current = false;
+            },
+          },
+          {
+            text: 'Cancel',
+            onPress: () => {
+              // Keep scanner paused; user can leave or manually navigate elsewhere
+              // Optionally handle navigation here if needed
+            },
+            style: 'cancel',
+          },
+        ],
+        { cancelable: false }
+      );
     }
   };
 
