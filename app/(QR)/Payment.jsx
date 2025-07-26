@@ -28,26 +28,6 @@ const Payment = () => {
       const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
 
       await runTransaction(db, async (transaction) => {
-        const queueSnapshot = await getDocs(query(queueRef, orderBy('position')));
-
-        if (!queueSnapshot.empty) {
-          const firstInQueue = queueSnapshot.docs[0];
-          if (firstInQueue.id !== user.uid) {
-            throw new Error("You’re not next in the queue for this machine.");
-          }
-
-          // Remove user from queue
-          transaction.delete(userDocRef);
-
-          // Shift others up
-          queueSnapshot.docs.slice(1).forEach((docSnap) => {
-            const docRef = doc(queueRef, docSnap.id);
-            transaction.update(docRef, {
-              position: docSnap.data().position - 1,
-            });
-          });
-        }
-
         // Update machine state
         transaction.update(machineRef, {
           available: false,

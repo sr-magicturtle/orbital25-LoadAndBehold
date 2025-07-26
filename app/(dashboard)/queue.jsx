@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { getAuth } from 'firebase/auth';
-import { deleteDoc, doc } from 'firebase/firestore';
+import { getDocs, updateDoc, collection, query, where, deleteDoc, doc } from 'firebase/firestore';
 import React, { useCallback, useState } from 'react';
 import { Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Header from '../../components/header';
@@ -26,19 +26,44 @@ const Queue = () => {
     );
 
     const handleLeaveQueue = async (machineId) => {
-        const user = getAuth().currentUser;
-        if (!user) return;
+    const user = getAuth().currentUser;
+    if (!user) return;
 
-        try {
-            const queueRef = doc(db, 'machines', machineId, 'queue', user.uid);
-            await deleteDoc(queueRef);
-            Alert.alert('Removed', 'You’ve left the queue.');
-            fetchQueues();
-        } catch (err) {
-            console.error('Leave Queue Error:', err);
-            Alert.alert('Error', err.message || 'Failed to leave queue.');
+    try {
+        // 1. Get the leaving user's position
+        const leavingDocRef = doc(db, 'machines', machineId, 'queue', user.uid);
+        const leavingDocSnap = await getDoc(leavingDocRef);
+        if (!leavingDocSnap.exists()) {
+            Alert.alert('Not found', 'You are not in the queue.');
+            return;
         }
-    };
+        const leavingPosition = leavingDocSnap.data().position;
+
+        // 2. Delete the user's doc
+        await deleteDoc(leavingDocRef);
+
+        // 3. Shift everyone behind up (those with position > leavingPosition)
+        const queueRef = collection(db, 'machines', machineId, 'queue');
+        const q = query(queueRef, where('position', '>', leavingPosition));
+        const queueSnap = await getDocs(q);
+
+        // Update each position synchronously
+        const batchPromises = [];
+        queueSnap.forEach(docSnap => {
+            const newPos = docSnap.data().position - 1;
+            batchPromises.push(
+                updateDoc(docSnap.ref, { position: newPos })
+            );
+        });
+        await Promise.all(batchPromises);
+
+        Alert.alert('Removed', 'You’ve left the queue.');
+        fetchQueues();
+    } catch (err) {
+        console.error('Leave Queue Error:', err);
+        Alert.alert('Error', err.message || 'Failed to leave queue.');
+    }
+};
 
     const renderItem = ({ item }) => (
         <View style={styles.card}>

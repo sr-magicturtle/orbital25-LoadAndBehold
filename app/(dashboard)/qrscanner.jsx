@@ -8,6 +8,7 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  getDoc,
   getFirestore,
   limit,
   orderBy,
@@ -45,22 +46,65 @@ const QrScanner = () => {
       const user = auth.currentUser;
       if (!user) throw new Error("User not authenticated");
 
-      // Restriction: Only allow if user is first in queue
+      // === 0. Get machine document status
+      const machineDocRef = doc(db, 'machines', machineId);
+      const machineDocSnap = await getDoc(machineDocRef);
+      if (!machineDocSnap.exists()) throw new Error('Machine not found');
+      const machine = machineDocSnap.data();
+      const isAvailable = machine.available !== false; // treat undefined as available
+
+      // === 1. If machine is occupied/!available, only the user who started the current cycle can scan
+      if (!isAvailable) {
+        // Must check if user is the current user using the machine!
+        // Assume you store current user's uid as `currentUserId` in the machine document
+        if (machine.currentUserId !== user.uid) {
+          throw new Error("This machine is currently in use by another user.");
+        }
+        // Allow scan to proceed to Collection page (not add log or remove from queue etc)
+        // Try collection redirect if there is an unfinished scan
+        const scansRef = collection(db, 'users', user.uid, 'scans');
+        const q = query(
+          scansRef,
+          where('machineId', '==', machineId),
+          orderBy('scannedAt', 'desc'),
+          limit(1)
+        );
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          const docSnap = snapshot.docs[0];
+          const data = docSnap.data();
+          if (!data.collectionTime) {
+            return router.push({
+              pathname: '../(QR)/Collection',
+              params: {
+                machineId,
+                scanId: docSnap.id,
+              },
+            });
+          }
+        }
+        // Otherwise, do nothing or prompt that cycle is ongoing and not in pickup state
+        throw new Error('Cycle ongoing. Please wait for your machine to finish.');
+      }
+
+      // === 2. If available, check queue
+      //    a. If queue exists -> only user with position 1 can scan
+      //    b. If no queue  -> anyone may scan
+
       const queueRef = collection(db, "machines", machineId, "queue");
       const qQuery = query(queueRef, orderBy('position', 'asc'), limit(1));
       const queueSnap = await getDocs(qQuery);
 
-      if (queueSnap.empty) {
-        throw new Error("Queue is empty or not found for this machine.");
+      if (!queueSnap.empty) {
+        // Queue exists -- user must be first in queue
+        const firstInQueue = queueSnap.docs[0];
+        if (firstInQueue.id !== user.uid) {
+          throw new Error("It's not your turn yet. Please wait for your turn in the queue.");
+        }
       }
+      // else: queue is empty, any user can scan!
 
-      const firstInQueue = queueSnap.docs[0];
-      if (firstInQueue.id !== user.uid) {
-        throw new Error("It's not your turn yet. Please wait for your turn in the queue.");
-      }
-      // Restriction end
-
-      // Check if user has an existing uncollected scan for this machine
+      // === Check if user has an existing uncollected scan for this machine
       const scansRef = collection(db, 'users', user.uid, 'scans');
       const q = query(
         scansRef,
@@ -68,13 +112,13 @@ const QrScanner = () => {
         orderBy('scannedAt', 'desc'),
         limit(1)
       );
-      const snapshot = await getDocs(q); 
+      const snapshot = await getDocs(q);
 
       if (!snapshot.empty) {
         const docSnap = snapshot.docs[0];
         const data = docSnap.data();
-
         if (!data.collectionTime) {
+          // User has a pending collection, direct them there
           return router.push({
             pathname: '../(QR)/Collection',
             params: {
@@ -85,22 +129,52 @@ const QrScanner = () => {
         }
       }
 
-      // ✅ Log new scan and mark machine as unavailable
+      // === Allowed to start a new cycle, log scan and set machine unavailable
       const newScanRef = await addDoc(collection(db, 'users', user.uid, 'scans'), {
         machineId,
         scannedAt: serverTimestamp(),
       });
 
+      // mark machine as unavailable and set currentUserId
       await setDoc(
         doc(db, 'machines', machineId),
-        { available: false },
+        { available: false, currentUserId: user.uid },
         { merge: true }
       );
 
-      // ✅ Remove user from the queue
-      await deleteDoc(doc(db, "machines", machineId, "queue", user.uid));
+      // Reference to the user's queue document
+      const userQueueDocRef = doc(db, "machines", machineId, "queue", user.uid);
 
-      // ✅ Navigate to Payment
+      // 1. Get the user's position in queue before deletion
+      const userQueueDocSnap = await getDoc(userQueueDocRef);
+      let leavingPosition = null;
+      if (userQueueDocSnap.exists()) {
+        leavingPosition = userQueueDocSnap.data().position;
+      }
+
+      // 2. Delete the user's queue document
+      await deleteDoc(userQueueDocRef);
+
+      // 3. If position exists, update positions of users behind
+      if (leavingPosition !== null) {
+        const queueRef = collection(db, "machines", machineId, "queue");
+        const q = query(queueRef, where("position", ">", leavingPosition));
+        const queueSnap = await getDocs(q);
+
+        // Update all affected queue entries
+        const updates = queueSnap.docs.map((docSnap) =>
+          setDoc(
+            doc(db, "machines", machineId, "queue", docSnap.id),
+            { position: docSnap.data().position - 1 },
+            { merge: true }
+          )
+        );
+        await Promise.all(updates);
+      }
+
+      
+
+      // Redirect to payment
       router.push({
         pathname: '../(QR)/Payment',
         params: {
@@ -119,15 +193,13 @@ const QrScanner = () => {
           {
             text: 'Retry',
             onPress: () => {
-              // Enable scanning again when user taps Retry
               scannedRef.current = false;
             },
           },
           {
             text: 'Cancel',
             onPress: () => {
-              // Keep scanner paused; user can leave or manually navigate elsewhere
-              // Optionally handle navigation here if needed
+              // user must manually restart scan
             },
             style: 'cancel',
           },
@@ -136,6 +208,8 @@ const QrScanner = () => {
       );
     }
   };
+
+  // ... [rest of your component, unchanged] ...
 
   if (!permission || permission.status === 'undetermined') {
     return (
